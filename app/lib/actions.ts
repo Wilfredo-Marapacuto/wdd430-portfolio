@@ -5,8 +5,41 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
-const ProjectFormSchema = z.object({
-  title: z.string().trim().min(2, "Title must contain at least 2 characters."),
+const currentYear = new Date().getFullYear();
+
+const CreateProjectSchema = z.object({
+  title: z
+    .string()
+    .trim()
+    .min(3, "Title must be at least 3 characters."),
+  description: z
+    .string()
+    .trim()
+    .min(20, "Description must be at least 20 characters."),
+  technologies: z
+    .string()
+    .trim()
+    .min(2, "Add at least one technology."),
+  yearCompleted: z.coerce
+    .number()
+    .int("Year must be a whole number.")
+    .gte(2000, "Year must be 2000 or later.")
+    .lte(
+      currentYear,
+      `Year cannot be greater than ${currentYear}.`,
+    ),
+  link: z
+    .string()
+    .trim()
+    .url("Project link must be a valid URL.")
+    .or(z.literal("")),
+});
+
+const UpdateProjectSchema = z.object({
+  title: z
+    .string()
+    .trim()
+    .min(2, "Title must contain at least 2 characters."),
   description: z
     .string()
     .trim()
@@ -18,30 +51,48 @@ const ProjectFormSchema = z.object({
   link: z
     .string()
     .trim()
-    .url("Link must be a valid URL.")
+    .url("Project link must be a valid URL.")
     .or(z.literal("")),
 });
 
-function parseProjectFormData(formData: FormData) {
-  const rawData = {
+export type State = {
+  errors?: {
+    title?: string[];
+    description?: string[];
+    technologies?: string[];
+    yearCompleted?: string[];
+    link?: string[];
+  };
+  message: string | null;
+};
+
+export async function createProject(
+  _previousState: State,
+  formData: FormData,
+): Promise<State> {
+  const validatedFields = CreateProjectSchema.safeParse({
     title: formData.get("title"),
     description: formData.get("description"),
     technologies: formData.get("technologies"),
+    yearCompleted: formData.get("yearCompleted"),
     link: formData.get("link") ?? "",
-  };
+  });
 
-  const parsedData = ProjectFormSchema.safeParse(rawData);
-
-  if (!parsedData.success) {
-    throw new Error("Invalid project input.");
+  if (!validatedFields.success) {
+    return {
+      errors: validatedFields.error.flatten().fieldErrors,
+      message:
+        "Missing or invalid fields. Failed to create project.",
+    };
   }
 
-  return parsedData.data;
-}
-
-export async function createProject(formData: FormData) {
-  const { title, description, technologies, link } =
-    parseProjectFormData(formData);
+  const {
+    title,
+    description,
+    technologies,
+    yearCompleted,
+    link,
+  } = validatedFields.data;
 
   try {
     await sql`
@@ -49,26 +100,29 @@ export async function createProject(formData: FormData) {
         title,
         description,
         technologies,
+        year_completed,
         link
       )
       VALUES (
         ${title},
         ${description},
         ${technologies},
+        ${yearCompleted},
         ${link || null}
       )
     `;
-
-    revalidatePath("/");
-    revalidatePath("/projects");
   } catch (error) {
     console.error("Error creating project:", error);
 
-    throw new Error(
-      "Failed to create project. Please try again later.",
-    );
+    return {
+      errors: {},
+      message:
+        "Database error: Failed to create project. Please try again later.",
+    };
   }
 
+  revalidatePath("/");
+  revalidatePath("/projects");
   redirect("/projects");
 }
 
@@ -82,8 +136,19 @@ export async function updateProject(
     throw new Error("Invalid project ID.");
   }
 
+  const validatedFields = UpdateProjectSchema.safeParse({
+    title: formData.get("title"),
+    description: formData.get("description"),
+    technologies: formData.get("technologies"),
+    link: formData.get("link") ?? "",
+  });
+
+  if (!validatedFields.success) {
+    throw new Error("Invalid project input.");
+  }
+
   const { title, description, technologies, link } =
-    parseProjectFormData(formData);
+    validatedFields.data;
 
   try {
     await sql`
