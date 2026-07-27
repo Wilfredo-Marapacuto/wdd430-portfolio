@@ -4,17 +4,18 @@ import { getProjects } from "@/app/lib/data";
 
 export const dynamic = "force-dynamic";
 
-export default async function Home() {
+export default async function ProjectsPage() {
   const projects = await getProjects();
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-12">
       <section className="mb-10 text-center">
-        <h1 className="mb-4 text-4xl font-bold">My Portfolio</h1>
+        <h1 className="mb-4 text-4xl font-bold text-gray-900">
+          Projects
+        </h1>
 
         <p className="mb-6 text-lg text-gray-700">
-          Welcome to my WDD 430 portfolio. Here are some of the projects I have
-          developed while learning full-stack web development.
+          Create, edit, and manage the projects in my portfolio.
         </p>
 
         <Link
