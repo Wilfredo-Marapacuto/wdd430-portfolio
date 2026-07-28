@@ -5,6 +5,7 @@ export interface Project {
   title: string;
   description: string;
   technologies: string;
+  year_completed: number;
   link: string | null;
 }
 
@@ -15,6 +16,7 @@ export async function getProjects(): Promise<Project[]> {
       title,
       description,
       technologies,
+      year_completed,
       link
     FROM projects
     ORDER BY created_at DESC, id DESC
@@ -32,6 +34,7 @@ export async function getProjectById(
       title,
       description,
       technologies,
+      year_completed,
       link
     FROM projects
     WHERE id = ${id}
