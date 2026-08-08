@@ -17,6 +17,7 @@ export default function ProjectList({ projects }: ProjectListProps) {
           technologies={project.technologies
             .split(",")
             .map((technology) => technology.trim())}
+          yearCompleted={project.year_completed}
           link={project.link ?? undefined}
         />
       ))}

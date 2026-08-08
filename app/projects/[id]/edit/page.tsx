@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { updateProject } from "@/app/lib/actions";
@@ -7,6 +8,38 @@ interface PageProps {
   params: Promise<{
     id: string;
   }>;
+}
+
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
+  const { id } = await params;
+  const projectId = Number(id);
+
+  if (!Number.isInteger(projectId) || projectId <= 0) {
+    return {
+      title: "Project Not Found",
+      description: "The requested portfolio project could not be found.",
+    };
+  }
+
+  const project = await getProjectById(projectId);
+
+  if (!project) {
+    return {
+      title: "Project Not Found",
+      description: "The requested portfolio project could not be found.",
+    };
+  }
+
+  return {
+    title: `Edit ${project.title}`,
+    description: `Edit the portfolio project: ${project.description}`,
+    openGraph: {
+      title: project.title,
+      description: project.description,
+    },
+  };
 }
 
 export default async function EditProjectPage({ params }: PageProps) {
@@ -24,15 +57,13 @@ export default async function EditProjectPage({ params }: PageProps) {
   }
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-12">
-      <div className="mb-8">
-        <Link
-          href="/projects"
-          className="text-sm font-medium text-blue-700 hover:underline"
-        >
-          ← Back to projects
-        </Link>
-      </div>
+    <main className="mx-auto max-w-3xl px-6 py-10">
+      <Link
+        href="/projects"
+        className="mb-8 inline-block text-blue-700 hover:underline"
+      >
+        ← Back to projects
+      </Link>
 
       <h1 className="mb-8 text-3xl font-bold text-gray-900">
         Edit Project
